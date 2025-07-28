@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# Python virtual environments
+venv_i2p/
+
 # Distribution / packaging
 .Python
 build/

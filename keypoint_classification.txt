@@ -1,0 +1,59 @@
+Here’s a specific breakdown of the concepts and modules used in your keypoint_classification_EN.ipynb script, with direct reference to what is actually used:
+
+Supervised Learning
+	Type: Multi-class classification
+	Task: Classify hand gestures based on 21 hand landmark coordinates (42 features per sample)
+	Labels: Integer class labels (e.g., 0, 1, 2, 3) from the first column of the CSV
+Neural Network Model
+	Framework: TensorFlow Keras
+	Model Type: Sequential feedforward neural network (MLP)
+	Architecture:
+		Input layer: 42 features (21 landmarks × 2 coordinates)
+		Dropout (0.2)
+		Dense (20 units, ReLU)
+		Dropout (0.4)
+		Dense (10 units, ReLU)
+		Output Dense (NUM_CLASSES units, softmax)
+Data Handling
+	Data Source: CSV file (keypoint.csv)
+	Features: Columns 1–42 (landmark coordinates)
+	Labels: Column 0 (gesture class)
+	Splitting: train_test_split from scikit-learn (75% train, 25% test, random seed 42)
+Model Training
+	Loss Function: sparse_categorical_crossentropy (for integer labels)
+	Optimizer: Adam
+	Metrics: Accuracy
+	Callbacks: ModelCheckpoint (save best model), EarlyStopping (patience=20)
+Model Evaluation
+	Test Set Evaluation: model.evaluate
+	Confusion Matrix: sklearn.metrics.confusion_matrix
+	Classification Report: sklearn.metrics.classification_report
+	Visualization: matplotlib and seaborn for plotting confusion matrix
+Model Export
+	Save Format: HDF5 (.hdf5) for Keras, TFLite (.tflite) for deployment
+	Quantization: TFLite model is quantized for efficiency
+	Inference
+Keras Model: model.predict
+	TFLite Model: tf.lite.Interpreter for running inference on the quantized model
+Python Modules Used
+	numpy: Array operations and data loading
+	tensorflow: Model building, training, saving, and TFLite conversion
+	sklearn.model_selection: train_test_split
+	sklearn.metrics: confusion_matrix, classification_report
+	matplotlib, seaborn: Visualization of confusion matrix
+	pandas: DataFrame for confusion matrix display
+	
+	
+Summary Table:
+Concept/Module	What’s Used in Script
+Supervised Learning	Multi-class classification (hand gesture recognition)
+Model Type	Feedforward neural network (MLP, Keras Sequential)
+Data Handling	CSV, NumPy, train/test split
+Loss/Optimizer	Sparse categorical crossentropy, Adam
+Evaluation	Accuracy, confusion matrix, classification report
+Export/Deployment	HDF5, TFLite, quantization
+Inference	Keras .predict, TFLite Interpreter
+Visualization	Matplotlib, Seaborn, Pandas
+In short:
+You need to know multi-class classification, feedforward neural networks (MLP), Keras/TensorFlow, scikit-learn for splitting/evaluation, 
+and basic data visualization with matplotlib/seaborn. All modules and concepts listed above are directly used in this script.

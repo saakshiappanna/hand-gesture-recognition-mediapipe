@@ -1,0 +1,104 @@
+conda create -n i2p python=3.10
+conda activate i2p
+
+
+
+Command Line Arguments: 
+Here’s what each parameter means in the context of this hand gesture recognition project:
+--device:
+The camera device index to use (e.g., 0 for the default webcam, 1 for an external camera).
+--width:
+The width (in pixels) of the video capture frame. Controls the horizontal resolution of the webcam feed.
+--height:
+The height (in pixels) of the video capture frame. Controls the vertical resolution of the webcam feed.
+--use_static_image_mode:
+If set, MediaPipe runs in static image mode, detecting hands in every frame (slower, but more robust for still images). 
+If not set, it tracks hands across frames (faster, but may miss hands if tracking fails).
+--min_detection_confidence:
+The minimum confidence threshold for the hand detection to be considered successful. Higher values mean the detector must be more certain before reporting a hand.
+--min_tracking_confidence:
+The minimum confidence threshold for the hand tracking to be considered successful. Higher values make the tracker more strict about continuing to track a detected hand.
+______________________________________________________________________________________________________________________________________________________________________________________
+point_history_classification.ipynb
+
+This script trains a hand gesture classification model using point history data. It:
+
+Loads point history data from a CSV file, splits it into training and test sets.
+Builds a neural network (either a simple dense model or LSTM, based on a flag) using TensorFlow/Keras.
+Trains the model and saves it.
+Evaluates the model using accuracy, confusion matrix, and classification report.
+Converts the trained model to TensorFlow Lite format for deployment on edge devices.
+Tests inference with the TFLite model to ensure it works as expected.
+The script is designed for gesture recognition using sequential hand landmark data.
+
+The CSV file (point_history.csv) used in this script contains the training data for hand gesture classification.
+Each row in the CSV represents one sample and is structured as follows:
+
+First column: The class label (an integer) representing the gesture category.
+Remaining columns: The point history data, which are the x and y coordinates of hand landmarks over time.
+Given the script uses:
+
+TIME_STEPS = 16
+DIMENSION = 2 (x and y)
+Each row has:
+
+1 label column
+32 feature columns (16 time steps × 2 dimensions)
+
+Time steps refers to the number of sequential frames or points in time that are used as input for each sample.
+
+In your script, TIME_STEPS = 16 means that for each gesture sample, the model uses the hand landmark data from 16 consecutive frames (or time points). 
+This allows the model to learn the temporal (time-based) movement pattern of the gesture, not just a single static position.
+______________________________________________________________________________________________________________________________________________________________________________________
+app.py
+
+This script (app.py) is the main application for real-time hand gesture recognition using a webcam. Here’s a brief summary of its functionality:
+
+Webcam Capture:
+Opens the webcam and captures video frames.
+
+Hand Detection:
+Uses MediaPipe to detect hand landmarks in each frame.
+
+Gesture Classification:
+
+KeyPointClassifier: Classifies static hand poses (e.g., open hand, fist) using hand landmarks.
+PointHistoryClassifier: Classifies dynamic gestures (e.g., waving, drawing shapes in the air) using the history of fingertip positions.
+Label Mapping:
+Loads gesture label names from CSV files for both static and dynamic gestures.
+
+Data Logging:
+In logging modes, saves landmark or point history data to CSV files for dataset creation.
+
+Visualization:
+Draws hand landmarks, bounding boxes, gesture names, and FPS on the video feed.
+
+User Interaction:
+Allows switching between modes and logging gestures using keyboard input.
+
+In summary:
+The script detects hands, classifies gestures in real time, displays results, and can log new gesture data for training.
+
+code:
+MediaPipe Hands.
+	MediaPipe Hands processes an RGB image and returns the hand landmarks and
+	handedness (left v.s. right hand) of each detected hand.
+	Processes an RGB image and returns the hand landmarks and handedness of each detected hand.
+	
+KeyPointClassifier
+	Purpose:
+		Classifies static hand gestures (like "fist", "open palm", "peace sign") based on the positions of hand landmarks detected by MediaPipe.
+	How it works:
+		Loads a TensorFlow Lite model (keypoint_classifier.tflite).
+		Takes a list of hand landmark coordinates as input.
+		Runs inference and returns the predicted gesture class index.
+		
+PointHistoryClassifier
+	Purpose:
+		Classifies dynamic hand gestures (like "swipe", "circle", "wave") based on the movement history of a specific hand point (usually the fingertip) over time.
+	How it works:
+		Takes a sequence of fingertip positions (point history) as input.
+		Loads a TensorFlow Lite model (point_history_classifier.tflite).
+		Runs inference and returns the predicted dynamic gesture class index.
+______________________________________________________________________________________________________________________________________________________________________________________
+
