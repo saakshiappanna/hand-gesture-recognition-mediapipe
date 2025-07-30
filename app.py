@@ -42,6 +42,7 @@ def main():
     # Argument parsing #################################################################
     args = get_args()
 
+    
     cap_device = args.device
     cap_width = args.width
     cap_height = args.height
@@ -53,9 +54,9 @@ def main():
     use_brect = True
 
     # Camera preparation ###############################################################
-    cap = cv.VideoCapture(cap_device)
-    cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
-    cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
+    cap = cv.VideoCapture(args.device)
+    cap.set(cv.CAP_PROP_FRAME_WIDTH, args.width)
+    cap.set(cv.CAP_PROP_FRAME_HEIGHT, args.height)
 
     # Model load #############################################################
     mp_hands = mp.solutions.hands
@@ -97,8 +98,24 @@ def main():
 
     #  ########################################################################
     mode = 0
+    action_map = {
+        0: "Open System",
+        1: "Close System",
+        2: "Pointer Mode",
+        3: "Confirm (OK)",
+        4: "Call Help / SOS",
+        5: "Adjust Temperature",
+        6: "Control Vents",
+        7: "Control Lights",
+        8: "Manual Override",
+        9: "Open Navigation"
+    }
 
     while True:
+        ret, image = cap.read()
+        if not ret:
+            break
+
         fps = cvFpsCalc.get()
 
         # Process Key (ESC: end) #################################################
@@ -184,8 +201,31 @@ def main():
         debug_image = draw_point_history(debug_image, point_history)
         debug_image = draw_info(debug_image, fps, mode, number)
 
-        # Screen reflection #############################################################
-        cv.imshow('Hand Gesture Recognition', debug_image)
+        # # Screen reflection #############################################################
+        # yield debug_image, keypoint_classifier_labels[hand_sign_id], action_map.get(hand_sign_id, "Unknown")
+        # Default gesture and action
+        # Drawing logic continues above...
+
+        debug_image = draw_point_history(debug_image, point_history)
+        debug_image = draw_info(debug_image, fps, mode, number)
+        
+        # Default values (for when no hand is detected)
+        gesture_name = "No Hand"
+        action_name = "None"
+        
+        # If hand is detected, classify and update gesture/action
+        if results.multi_hand_landmarks is not None:
+            for hand_landmarks, handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
+                hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
+                gesture_name = keypoint_classifier_labels[hand_sign_id]
+                action_name = action_map.get(hand_sign_id, "Unknown")
+        
+        # Yield everything for Streamlit
+        yield debug_image, gesture_name, action_name
+
+
+
+
 
     cap.release()
     cv.destroyAllWindows()
