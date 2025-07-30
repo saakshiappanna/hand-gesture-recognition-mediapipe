@@ -161,12 +161,22 @@ def main():
                 # Drawing part
                 debug_image = draw_bounding_rect(use_brect, debug_image, brect)
                 debug_image = draw_landmarks(debug_image, landmark_list)
+                # Determine finger gesture text for overlay
+                static_label = keypoint_classifier_labels[hand_sign_id]
+                dynamic_label = point_history_classifier_labels[most_common_fg_id[0][0]]
+                if dynamic_label.lower() in ["clockwise", "counterclockwise", "move right", "move left"]:
+                    if static_label == "Pointer":
+                        fg_text = f"{dynamic_label}"
+                    else:
+                        fg_text = "idle"
+                else:
+                    fg_text = dynamic_label
                 debug_image = draw_info_text(
                     debug_image,
                     brect,
                     handedness,
-                    keypoint_classifier_labels[hand_sign_id],
-                    point_history_classifier_labels[most_common_fg_id[0][0]],
+                    static_label,
+                    fg_text,
                 )
         else:
             point_history.append([0, 0])
