@@ -5,15 +5,14 @@ from app import main as gesture_stream
 st.set_page_config(page_title="Defendum", layout="wide")
 st.title("🛡️ Defendum: Gesture-Controlled In-Car Assistant")
 
-# Initialize state
+# Initialize session state
 if "running" not in st.session_state:
     st.session_state.running = False
 
-# Layout setup
-left_col, right_col = st.columns([2, 1])  # Video left, gestures right
+# Layout: Left - video & controls, Right - gesture info
+left_col, right_col = st.columns([2, 1])
 
 with left_col:
-    # Start/Stop buttons in the same row
     b1, b2 = st.columns(2)
     with b1:
         if st.button("▶️ Start Webcam") and not st.session_state.running:
@@ -24,22 +23,25 @@ with left_col:
 
     frame_placeholder = st.empty()
 
-# Right column for gesture/action display
 with right_col:
     gesture_text = st.empty()
     action_text = st.empty()
+    dyn_gesture_text = st.empty()
+    dyn_action_text = st.empty()
 
 # Run webcam if active
 if st.session_state.running:
-    gesture_feed = gesture_stream()  # Start fresh each time
+    gesture_feed = gesture_stream()
     while st.session_state.running:
         try:
-            frame, gesture_name, action_name = next(gesture_feed)
+            frame, gesture_name, action_name, dyn_label, dyn_action = next(gesture_feed)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frame_placeholder.image(frame, channels="RGB")
 
             gesture_text.markdown(f"### 🤖 Gesture: `{gesture_name}`")
             action_text.markdown(f"### 🎯 Action: `{action_name}`")
+            dyn_gesture_text.markdown(f"### 🔄 Dynamic Gesture: `{dyn_label}`")
+            dyn_action_text.markdown(f"### 🕹️ Dynamic Action: `{dyn_action}`")
 
         except StopIteration:
             break

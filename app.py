@@ -110,8 +110,21 @@ def main():
         8: "Manual Override",
         9: "Open Navigation"
     }
+    dynamic_action_map = {
+    0: "Rotate Vent Clockwise",
+    1: "Rotate Vent Counter-Clockwise",
+    2: "Slide Display Right",
+    3: "Slide Display Left"
+    }
+
+    gesture_name = "No Hand"
+    action_name = "None"
+    dynamic_label = "None"
+    dynamic_action = "None"
+    finger_gesture_id = None  # Not 0!
 
     while True:
+        finger_gesture_id = None
         ret, image = cap.read()
         if not ret:
             break
@@ -138,91 +151,80 @@ def main():
         results = hands.process(image)
         image.flags.writeable = True
 
+
+
         #  ####################################################################
-        if results.multi_hand_landmarks is not None:
-            for hand_landmarks, handedness in zip(results.multi_hand_landmarks,
-                                                  results.multi_handedness):
-                # Bounding box calculation
-                brect = calc_bounding_rect(debug_image, hand_landmarks)
-                # Landmark calculation
-                landmark_list = calc_landmark_list(debug_image, hand_landmarks)
-
-                # Conversion to relative coordinates / normalized coordinates
-                pre_processed_landmark_list = pre_process_landmark(
-                    landmark_list)
-                pre_processed_point_history_list = pre_process_point_history(
-                    debug_image, point_history)
-                # Write to the dataset file
-                logging_csv(number, mode, pre_processed_landmark_list,
-                            pre_processed_point_history_list)
-
-                # Hand sign classification
-                hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
-                if hand_sign_id == 2:  # Point gesture
-                    point_history.append(landmark_list[8])
-                else:
-                    point_history.append([0, 0])
-
-                # Finger gesture classification
-                finger_gesture_id = 0
-                point_history_len = len(pre_processed_point_history_list)
-                if point_history_len == (history_length * 2):
-                    finger_gesture_id = point_history_classifier(
-                        pre_processed_point_history_list)
-
-                # Calculates the gesture IDs in the latest detection
-                finger_gesture_history.append(finger_gesture_id)
-                most_common_fg_id = Counter(
-                    finger_gesture_history).most_common()
-
-                # Drawing part
-                debug_image = draw_bounding_rect(use_brect, debug_image, brect)
-                debug_image = draw_landmarks(debug_image, landmark_list)
-                # Determine finger gesture text for overlay
-                static_label = keypoint_classifier_labels[hand_sign_id]
-                dynamic_label = point_history_classifier_labels[most_common_fg_id[0][0]]
-                if dynamic_label.lower() in ["clockwise", "counterclockwise", "move right", "move left"]:
-                    if static_label == "Pointer":
-                        fg_text = f"{dynamic_label}"
-                    else:
-                        fg_text = "idle"
-                else:
-                    fg_text = dynamic_label
-                debug_image = draw_info_text(
-                    debug_image,
-                    brect,
-                    handedness,
-                    static_label,
-                    fg_text,
-                )
-        else:
-            point_history.append([0, 0])
-
-        debug_image = draw_point_history(debug_image, point_history)
-        debug_image = draw_info(debug_image, fps, mode, number)
-
-        # # Screen reflection #############################################################
-        # yield debug_image, keypoint_classifier_labels[hand_sign_id], action_map.get(hand_sign_id, "Unknown")
-        # Default gesture and action
-        # Drawing logic continues above...
-
-        debug_image = draw_point_history(debug_image, point_history)
-        debug_image = draw_info(debug_image, fps, mode, number)
-        
-        # Default values (for when no hand is detected)
         gesture_name = "No Hand"
         action_name = "None"
+        dynamic_label = "None"
+        dynamic_action = "None"
+        finger_gesture_id = 0
         
-        # If hand is detected, classify and update gesture/action
         if results.multi_hand_landmarks is not None:
             for hand_landmarks, handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
-                hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
-                gesture_name = keypoint_classifier_labels[hand_sign_id]
-                action_name = action_map.get(hand_sign_id, "Unknown")
+                brect = calc_bounding_rect(debug_image, hand_landmarks)
+                landmark_list = calc_landmark_list(debug_image, hand_landmarks)
         
+                pre_processed_landmark_list = pre_process_landmark(landmark_list)
+                pre_processed_point_history_list = pre_process_point_history(debug_image, point_history)
+        
+                logging_csv(number, mode, pre_processed_landmark_list, pre_processed_point_history_list)
+        
+                # Static gesture
+                hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
+                static_label = keypoint_classifier_labels[hand_sign_id]
+                gesture_name = static_label
+                action_name = action_map.get(hand_sign_id, "None")
+        
+                if hand_sign_id == 2:  # Pointer mode
+                    point_history.append(landmark_list[8])
+                    point_history_len = len(pre_processed_point_history_list)
+                
+                    # Check if pointer is moving
+                    moved = False
+                    if len(point_history) >= 2:
+                        dx = abs(point_history[-1][0] - point_history[-2][0])
+                        dy = abs(point_history[-1][1] - point_history[-2][1])
+                        moved = dx > 3 or dy > 3  # You can tune this threshold
+                
+                    if moved and point_history_len == (history_length * 2):
+                        finger_gesture_id = point_history_classifier(pre_processed_point_history_list)
+                        finger_gesture_history.append(finger_gesture_id)
+                
+                        most_common_fg_id = Counter(finger_gesture_history).most_common()
+                        if most_common_fg_id and most_common_fg_id[0][1] > 3:  # Stability threshold
+                            fg_id = most_common_fg_id[0][0]
+                            dynamic_label = point_history_classifier_labels[fg_id]
+                            dynamic_action = dynamic_action_map.get(fg_id, "None")
+                        else:
+                            dynamic_label = "None"
+                            dynamic_action = "None"
+                else:
+                    point_history.append([0, 0])
+                    dynamic_label = "None"
+                    dynamic_action = "None"
+        
+                # Display on frame
+                if dynamic_label.lower() in ["clockwise", "counterclockwise", "move right", "move left"]:
+                    fg_text = dynamic_label if static_label == "Pointer" else "idle"
+                else:
+                    fg_text = dynamic_label
+        
+                debug_image = draw_bounding_rect(use_brect, debug_image, brect)
+                debug_image = draw_landmarks(debug_image, landmark_list)
+                debug_image = draw_info_text(debug_image, brect, handedness, static_label, fg_text)
+        else:
+            point_history.append([0, 0])
+            finger_gesture_id = 0
+            dynamic_label = "None"
+            dynamic_action = "None"
+            gesture_name = "No Hand"
+            action_name = "None"
+        
+        debug_image = draw_point_history(debug_image, point_history)
+        debug_image = draw_info(debug_image, fps, mode, number)
         # Yield everything for Streamlit
-        yield debug_image, gesture_name, action_name
-
+        yield debug_image, gesture_name, action_name, dynamic_label, dynamic_action
 
 
 
