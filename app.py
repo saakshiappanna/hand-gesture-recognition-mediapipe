@@ -185,14 +185,14 @@ def main():
                     if len(point_history) >= 2:
                         dx = abs(point_history[-1][0] - point_history[-2][0])
                         dy = abs(point_history[-1][1] - point_history[-2][1])
-                        moved = dx > 3 or dy > 3  # You can tune this threshold
-                
+                        moved = dx > 4 or dy > 4  # You can tune this threshold
+
                     if moved and point_history_len == (history_length * 2):
                         finger_gesture_id = point_history_classifier(pre_processed_point_history_list)
                         finger_gesture_history.append(finger_gesture_id)
                 
                         most_common_fg_id = Counter(finger_gesture_history).most_common()
-                        if most_common_fg_id and most_common_fg_id[0][1] > 3:  # Stability threshold
+                        if most_common_fg_id and most_common_fg_id[0][1] > 4:  # Stability threshold
                             fg_id = most_common_fg_id[0][0]
                             dynamic_label = point_history_classifier_labels[fg_id]
                             dynamic_action = dynamic_action_map.get(fg_id, "None")
